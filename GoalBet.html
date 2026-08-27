@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Goal Bet - Casino & Admin Chat</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --gb-bg: #0b0f19;
+            --gb-card-bg: #151d2a;
+            --gb-primary: #10b981;
+            --gb-accent: #22c55e;
+            --gb-gold: #f59e0b;
+            --gb-red: #ef4444;
+            --gb-text: #f8fafc;
+            --gb-text-sub: #94a3b8;
+            --gb-border: #263347;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--gb-bg); color: var(--gb-text); padding-bottom: 70px; display: flex; justify-content: center; }
+
+        .mobile-container { width: 100%; max-width: 480px; background-color: var(--gb-bg); min-height: 100vh; position: relative; overflow-x: hidden; }
+
+        /* HEADER */
+        .header { background-color: #060911; height: 55px; display: flex; align-items: center; justify-content: space-between; padding: 0 12px; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid var(--gb-border); }
+        .logo { font-weight: 900; font-size: 20px; color: var(--gb-accent); cursor: pointer; display: flex; align-items: center; gap: 6px; }
+        .logo span { color: #fff; }
+        .header-btns { display: flex; gap: 6px; }
+        .btn-header { padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: 800; border: none; cursor: pointer; }
+        .btn-register { background-color: var(--gb-primary); color: #fff; }
+        .btn-login { background-color: var(--gb-border); color: #fff; }
+        
+        .user-info { display: none; color: #fff; font-size: 11px; font-weight: bold; align-items: center; gap: 6px; }
+        .user-balance { background: var(--gb-accent); color: #000; padding: 3px 6px; border-radius: 4px; font-weight: 800; }
+        .user-rank { background: var(--gb-gold); color: #000; padding: 2px 5px; border-radius: 4px; font-size: 9px; font-weight: 900; }
+
+        /* BANNER */
+        .banner { margin: 12px; border-radius: 12px; background: linear-gradient(135deg, #059669 0%, #10b981 100%); color: #fff; padding: 15px; text-align: center; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.2); }
+        .banner-title { font-size: 22px; font-weight: 900; color: #fff; font-style: italic; }
+        .banner-subtitle { font-size: 10px; letter-spacing: 2px; color: #d1fae5; margin-bottom: 6px; font-weight: 700; }
+
+        /* GRID SYSTEM */
+        .grid-container { padding: 0 12px; display: flex; flex-direction: column; gap: 10px; }
+        .grid-row { display: grid; gap: 8px; }
+        .cols-2 { grid-template-columns: repeat(2, 1fr); }
+
+        .menu-card { background: var(--gb-card-bg); border-radius: 10px; padding: 12px 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; position: relative; border: 1px solid var(--gb-border); cursor: pointer; min-height: 75px; }
+        .menu-card i { font-size: 22px; margin-bottom: 6px; }
+        .menu-card span { font-size: 11px; font-weight: 700; color: var(--gb-text); }
+
+        /* PANELLER */
+        .page-panel { display: none; padding: 0 12px; }
+        .page-panel.active { display: block; }
+
+        .card-box { background: var(--gb-card-bg); border: 1px solid var(--gb-border); padding: 12px; border-radius: 8px; margin-bottom: 10px; text-align: left; }
+        .admin-input { width: 100%; padding: 8px; background: var(--gb-bg); border: 1px solid var(--gb-border); border-radius: 4px; color: #fff; margin-top: 5px; font-size: 12px; }
+
+        /* OYUN ALANLARI VE ANİMASYONLAR */
+        .game-box { background: var(--gb-card-bg); border-radius: 12px; padding: 15px; text-align: center; border: 1px solid var(--gb-border); margin-bottom: 15px; position: relative; }
+        .bj-cards { display: flex; justify-content: center; gap: 8px; margin: 10px 0; min-height: 50px; }
+        .card { background: #fff; color: #000; font-weight: 800; padding: 8px 12px; border-radius: 6px; font-size: 14px; }
+        .aviator-screen { background: #000; height: 130px; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin: 12px 0; border: 1px solid #333; position: relative; overflow: hidden; }
+        .bonanza-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 12px 0; background: #0f172a; padding: 10px; border-radius: 8px; }
+        .bonanza-cell { background: #1e293b; height: 40px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+        
+        /* PENALTI OYUNU SAHASI VE ANİMASYONLARI */
+        .penalty-field { width: 100%; height: 180px; border: 2px solid #fff; border-bottom: none; position: relative; background: radial-gradient(circle, #15803d 0%, #064e3b 100%); margin: 10px 0; border-radius: 8px 8px 0 0; overflow: hidden; }
+        .penalty-goal { position: absolute; top: 10px; left: 10%; width: 80%; height: 75px; border: 3px solid #fff; border-bottom: none; background: rgba(255,255,255,0.05); }
+        .penalty-targets { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); height: 100%; gap: 2px; }
+        .target-btn { background: rgba(255,255,255,0.1); border: 1px dashed rgba(255,255,255,0.3); border-radius: 2px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 9px; cursor: pointer; transition: 0.2s; }
+        .target-btn:hover { background: rgba(34, 197, 94, 0.4); }
+
+        .keeper { position: absolute; top: 45px; left: 50%; transform: translateX(-50%); font-size: 26px; color: #f59e0b; transition: all 0.5s ease-out; z-index: 5; }
+        .ball { position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); font-size: 20px; transition: all 0.5s cubic-bezier(0.25, 1, 0.5, 1); z-index: 10; }
+
+        /* GATES OF OLYMPUS ANİMASYONU */
+        .zeus-icon { font-size: 55px; color: var(--gb-gold); margin-bottom: 10px; transition: transform 0.3s; }
+        .zeus-spin { animation: thunderStrike 0.6s ease-in-out infinite alternate; }
+        @keyframes thunderStrike {
+            0% { transform: scale(1) rotate(0deg); filter: drop-shadow(0 0 5px #f59e0b); }
+            100% { transform: scale(1.2) rotate(10deg); filter: drop-shadow(0 0 25px #fff); }
+        }
+
+        /* CHAT BOX */
+        .chat-box { height: 220px; background: var(--gb-bg); border: 1px solid var(--gb-border); border-radius: 8px; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+        .chat-msg { padding: 8px 10px; border-radius: 8px; font-size: 11px; max-width: 85%; }
+        .msg-user { background: #1e293b; align-self: flex-start; border: 1px solid var(--gb-border); }
+        .msg-admin { background: #065f46; align-self: flex-end; color: #fff; }
+        .msg-author { font-size: 9px; font-weight: bold; color: var(--gb-gold); margin-bottom: 2px; display: block; }
+
+        /* BOTTOM NAV */
+        .bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; height: 60px; background: #060911; border-top: 1px solid var(--gb-border); display: flex; justify-content: space-around; align-items: center; z-index: 1000; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; color: var(--gb-text-sub); font-size: 10px; font-weight: 700; cursor: pointer; }
+        .nav-item.active { color: var(--gb-accent); }
+
+        /* ADMIN METRİKLERİ */
+        .admin-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 12px; }
+        .stat-card { background: #0f172a; border: 1px solid var(--gb-border); padding: 10px; border-radius: 8px; }
+        .stat-card p { font-size: 10px; color: var(--gb-text-sub); }
+        .stat-card h4 { font-size: 16px; color: var(--gb-accent); margin-top: 4px; }
+
+        .btn-submit { width: 100%; padding: 10px; background: var(--gb-primary); color: #fff; border: none; border-radius: 6px; font-weight: 800; cursor: pointer; font-size: 13px; margin-top: 5px; }
+        .btn-red { background: var(--gb-red); }
+        .btn-gold { background: var(--gb-gold); color: #000; }
+        
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 2000; justify-content: center; align-items: center; }
+        .modal-content { background: var(--gb-card-bg); width: 90%; max-width: 360px; padding: 20px; border-radius: 12px; position: relative; border: 1px solid var(--gb-border); }
+        .modal-close { position: absolute; right: 15px; top: 15px; font-size: 18px; cursor: pointer; color: var(--gb-text-sub); }
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; font-size: 11px; font-weight: 700; margin-bottom: 4px; color: var(--gb-text); }
+        .form-group input, .form-group select { width: 100%; padding: 8px; background: var(--gb-bg); border: 1px solid var(--gb-border); border-radius: 6px; font-size: 13px; color: #fff; outline: none; }
+    </style>
+</head>
+<body>
+
+<div class="mobile-container">
+
+    <!-- Header -->
+    <header class="header">
+        <div class="logo" onclick="openHome()">
+            <i class="fa-solid fa-dice"></i> GOAL<span>BET</span>
+        </div>
+        <div class="header-btns" id="authBtns">
+            <button class="btn-header btn-register" onclick="openModal('registerModal')">KAYIT OL</button>
+            <button class="btn-header btn-login" onclick="openModal('loginModal')">GİRİŞ</button>
+        </div>
+        <div class="user-info" id="userInfo">
+            <span class="user-rank" id="rankDisplay">ÜYE</span>
+            <span id="usernameDisplay">Kullanıcı</span>
+            <span class="user-balance" id="balanceDisplay">₺0.00</span>
+            <i class="fa-solid fa-right-from-bracket" onclick="logout()" style="cursor:pointer; margin-left:5px; font-size:14px; color:var(--gb-red);"></i>
+        </div>
+    </header>
+
+    <!-- ANASAYFA PANELİ -->
+    <div id="homePanel" class="page-panel active">
+        <div class="banner">
+            <div class="banner-title">CASINO & WINNER</div>
+            <div class="banner-subtitle">CANLI GAMING & YÖNETİM PLATFORMU</div>
+        </div>
+
+        <div class="grid-container">
+            <button class="menu-card" id="adminMenuBtn" style="display:none; background: linear-gradient(135deg, #311b92, #4a148c); border-color:var(--gb-gold);" onclick="openAdminPanel()">
+                <i class="fa-solid fa-user-gear" style="color:var(--gb-gold); font-size:24px;"></i>
+                <span style="color:var(--gb-gold); font-weight:900;">ADMIN YÖNETİM PANELİ</span>
+            </button>
+
+            <!-- Lobi Oyun Grid'i Dinamik Olarak Yüklenecek -->
+            <div class="grid-row cols-2" id="dynamicLobbyGames"></div>
+        </div>
+    </div>
+
+    <!-- OYUN PANELİ -->
+    <div id="gamePanel" class="page-panel">
+        <h3 id="gameTitle" style="margin: 15px 0 10px 0; color: var(--gb-accent); font-size:16px;">Oyun</h3>
+        <div id="gameContent"></div>
+    </div>
+
+    <!-- PARA YATIRMA PANELİ -->
+    <div id="depositPanel" class="page-panel">
+        <h3 style="margin: 15px 0 10px 0; color: var(--gb-accent); font-size:16px;"><i class="fa-solid fa-wallet"></i> Para Yatır</h3>
+        <div class="card-box">
+            <p style="font-size:12px; color:var(--gb-text-sub); margin-bottom:10px;">Banka hesabına ödeme yaptıktan sonra bildirim gönderin:</p>
+            <p style="font-size:11px; background:#000; padding:8px; border-radius:4px; font-weight:bold; color:var(--gb-gold); margin-bottom:10px;">TR99 0006 2000 0000 0000 0000 01 (GoalBet)</p>
+            <form onsubmit="handleDepositSubmit(event)">
+                <div class="form-group">
+                    <label>Gönderen Ad Soyad</label>
+                    <input type="text" id="depositSender" placeholder="Ad Soyad" required>
+                </div>
+                <div class="form-group">
+                    <label>Yatırılan Miktar (₺)</label>
+                    <input type="number" id="depositAmount" placeholder="200" min="50" required>
+                </div>
+                <button type="submit" class="btn-submit">YATIRIM BİLDİRİMİ GÖNDER</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- PARA ÇEKME PANELİ -->
+    <div id="withdrawPanel" class="page-panel">
+        <h3 style="margin: 15px 0 10px 0; color: var(--gb-accent); font-size:16px;"><i class="fa-solid fa-money-bill-transfer"></i> Para Çekme (İBAN)</h3>
+        <div class="card-box">
+            <form onsubmit="handleWithdrawSubmit(event)">
+                <div class="form-group">
+                    <label>Banka İBAN Adresi (TR...)</label>
+                    <input type="text" id="withdrawIban" placeholder="TR00 0000 0000 0000 0000 0000 00" required>
+                </div>
+                <div class="form-group">
+                    <label>Çekilecek Miktar (₺)</label>
+                    <input type="number" id="withdrawAmount" placeholder="100" min="50" required>
+                </div>
+                <button type="submit" class="btn-submit">ÇEKİM TALEBİ GÖNDER</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- CANLI DESTEK PANELİ -->
+    <div id="supportPanel" class="page-panel">
+        <h3 style="margin: 15px 0 10px 0; color: var(--gb-accent); font-size:16px;"><i class="fa-solid fa-headset"></i> Canlı Destek & Admin Chat</h3>
+        <div class="card-box">
+            <div class="chat-box" id="userChatBox"></div>
+            <div class="form-group" style="display:flex; gap:6px;">
+                <input type="text" id="userChatInput" placeholder="Mesajınızı yazın..." style="flex:1; background:var(--gb-bg); border:1px solid var(--gb-border); border-radius:6px; padding:8px; color:#fff;">
+                <button class="btn-submit" onclick="sendUserMessage()" style="width: auto; margin:0; padding:0 15px;">GÖNDER</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PROFİL PANELİ -->
+    <div id="profilePanel" class="page-panel">
+        <h3 style="margin: 15px 0 10px 0; color: var(--gb-gold); font-size:16px;"><i class="fa-solid fa-id-card"></i> Kullanıcı Profili</h3>
+        <div class="card-box" id="profileContent"></div>
+    </div>
+
+    <!-- GELİŞMİŞ ADMIN PANELİ -->
+    <div id="adminPanel" class="page-panel">
+        <h3 style="margin: 15px 0 10px 0; color: var(--gb-gold); font-size:18px;"><i class="fa-solid fa-sliders"></i> GELİŞMİŞ YÖNETİM PANELİ</h3>
+        
+        <div class="admin-stats">
+            <div class="stat-card">
+                <p>TOPLAM KULLANICI</p>
+                <h4 id="statUsers">0</h4>
+            </div>
+            <div class="stat-card">
+                <p>ÜYE BAKİYE TOPLAMI</p>
+                <h4 id="statTotalUserBalance">₺0.00</h4>
+            </div>
+            <div class="stat-card">
+                <p>BEKLEYEN YATIRIM/ÇEKİM</p>
+                <h4 id="statPendingRequests">0</h4>
+            </div>
+            <div class="stat-card">
+                <p>KASA DENGESİ</p>
+                <h4 id="statVault" style="color:var(--gb-gold);">₺0.00</h4>
+            </div>
+        </div>
+
+        <!-- YENİ OYUN EKLEME MODÜLÜ -->
+        <h4 style="margin: 12px 0 6px 0; font-size:13px; color:var(--gb-gold);"><i class="fa-solid fa-circle-plus"></i> Sıfırdan Yeni Oyun Ekle</h4>
+        <div class="card-box">
+            <div class="form-group">
+                <label>Oyun Başlığı:</label>
+                <input type="text" id="newGameTitle" placeholder="Örn: Rulet" class="admin-input">
+            </div>
+            <div class="form-group">
+                <label>İkon Sınıfı (FontAwesome):</label>
+                <input type="text" id="newGameIcon" placeholder="fa-solid fa-dice-five" class="admin-input">
+            </div>
+            <div class="form-group">
+                <label>Giriş / Spin Fiyatı (₺):</label>
+                <input type="number" id="newGamePrice" placeholder="50" class="admin-input">
+            </div>
+            <button class="btn-submit btn-gold" onclick="addNewGame()">YENİ OYUNU LOBİYE EKLE</button>
+        </div>
+
+        <!-- MEVCUT OYUNLARI DÜZENLEME MODÜLÜ (Geri Geldi!) -->
+        <h4 style="margin: 12px 0 6px 0; font-size:13px; color:var(--gb-gold);"><i class="fa-solid fa-gear"></i> Mevcut Oyunları Düzenle (İsim & Fiyat)</h4>
+        <div id="gameSettingsAdmin"></div>
+
+        <h4 style="margin: 12px 0 6px 0; font-size:13px; color:var(--gb-gold);"><i class="fa-solid fa-money-bill-trend-up"></i> Para Yatırma Talepleri (Bildirimler)</h4>
+        <div id="depositRequestsAdmin"></div>
+
+        <h4 style="margin: 12px 0 6px 0; font-size:13px; color:var(--gb-gold);"><i class="fa-solid fa-hand-holding-dollar"></i> Para Çekme Talepleri (İBAN)</h4>
+        <div id="withdrawRequestsAdmin"></div>
+
+        <h4 style="margin: 12px 0 6px 0; font-size:13px; color:var(--gb-gold);"><i class="fa-solid fa-comments"></i> Canlı Destek Chat</h4>
+        <div class="card-box">
+            <label style="font-size:11px; font-weight:bold;">Sohbet Edilecek Kullanıcıyı Seç:</label>
+            <select id="adminChatUserSelect" class="admin-input" onchange="loadAdminChat()"></select>
+            <div class="chat-box" id="adminChatBox" style="margin-top:10px;"></div>
+            <div style="display:flex; gap:6px; margin-top:6px;">
+                <input type="text" id="adminChatInput" placeholder="Kullanıcıya yanıt yazın..." class="admin-input" style="margin:0;">
+                <button class="btn-submit btn-gold" onclick="sendAdminMessage()" style="width:auto; margin:0; padding:0 15px;">YAZ</button>
+            </div>
+        </div>
+
+        <h4 style="margin: 12px 0 6px 0; font-size:13px; color:var(--gb-text-sub);"><i class="fa-solid fa-users-gear"></i> Kullanıcı Yönetimi, Bakiye & Ban</h4>
+        <div id="userListAdmin"></div>
+    </div>
+
+    <!-- ALT NAVİGASYON BAR -->
+    <nav class="bottom-nav">
+        <div class="nav-item active" onclick="openHome()"><i class="fa-solid fa-house" style="font-size:16px; margin-bottom:2px;"></i><span>Lobi</span></div>
+        <div class="nav-item" onclick="openDepositPanel()"><i class="fa-solid fa-wallet" style="font-size:16px; margin-bottom:2px;"></i><span>Para Yatır</span></div>
+        <div class="nav-item" onclick="openWithdrawPanel()"><i class="fa-solid fa-money-bill-transfer" style="font-size:16px; margin-bottom:2px;"></i><span>Para Çek</span></div>
+        <div class="nav-item" onclick="openSupportPanel()"><i class="fa-solid fa-headset" style="font-size:16px; margin-bottom:2px;"></i><span>Destek</span></div>
+        <div class="nav-item" onclick="openProfile()"><i class="fa-solid fa-user" style="font-size:16px; margin-bottom:2px;"></i><span>Profil</span></div>
+    </nav>
+
+</div>
+
+<!-- MODALLAR -->
+<div class="modal" id="loginModal">
+    <div class="modal-content">
+        <span class="modal-close" onclick="closeModal('loginModal')">✕</span>
+        <h3 style="margin-bottom:12px; color:var(--gb-accent); font-size:16px;">Giriş Yap</h3>
+        <form onsubmit="handleLogin(event)">
+            <div class="form-group">
+                <label>E-Posta Adresi</label>
+                <input type="email" id="loginEmail" required placeholder="ornek@mail.com">
+            </div>
+            <div class="form-group">
+                <label>Şifre</label>
+                <input type="password" id="loginPass" required placeholder="••••••••">
+            </div>
+            <button type="submit" class="btn-submit">GİRİŞ YAP</button>
+        </form>
+    </div>
+</div>
+
+<div class="modal" id="registerModal">
+    <div class="modal-content">
+        <span class="modal-close" onclick="closeModal('registerModal')">✕</span>
+        <h3 style="margin-bottom:12px; color:var(--gb-accent); font-size:16px;">Kayıt Ol</h3>
+        <form onsubmit="handleRegister(event)">
+            <div class="form-group">
+                <label>Kullanıcı Adı</label>
+                <input type="text" id="regName" required placeholder="Kullanıcı adı">
+            </div>
+            <div class="form-group">
+                <label>E-Posta Adresi</label>
+                <input type="email" id="regEmail" required placeholder="ornek@mail.com">
+            </div>
+            <div class="form-group">
+                <label>Şifre</label>
+                <input type="password" id="regPass" required placeholder="••••••••">
+            </div>
+            <button type="submit" class="btn-submit">HESAP OLUŞTUR</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    function getDB() {
+        let db = JSON.parse(localStorage.getItem('goalbet_v5_db'));
+        if(!db) {
+            db = {
+                users: [
+                    { name: 'Sistem Admini', email: 'admin@gmail.com', pass: 'admin000', balance: 0.00, rank: 'ADMIN', isBanned: false }
+                ],
+                deposits: [],
+                withdrawals: [],
+                messages: [],
+                games: [
+                    { id: 'Blackjack', name: 'Blackjack (21)', icon: 'fa-solid fa-spade', price: 50, bg: 'linear-gradient(135deg, #1e1b4b, #312e81)', color: '#38bdf8' },
+                    { id: 'Aviator', name: 'Aviator', icon: 'fa-solid fa-plane-up', price: 200, bg: 'linear-gradient(135deg, #450a0a, #7f1d1d)', color: '#ef4444' },
+                    { id: 'SweetBonanza', name: 'Sweet Bonanza', icon: 'fa-solid fa-candy-cane', price: 30, bg: 'linear-gradient(135deg, #831843, #500724)', color: '#ec4899' },
+                    { id: 'GatesOfOlympus', name: 'Gates of Olympus', icon: 'fa-solid fa-bolt-lightning', price: 40, bg: 'linear-gradient(135deg, #14532d, #064e3b)', color: '#f59e0b' },
+                    { id: 'Penalty', name: 'Penaltı Vurma', icon: 'fa-solid fa-futbol', price: 50, bg: 'linear-gradient(135deg, #15803d, #166534)', color: '#fff' },
+                    { id: 'KaziKazan', name: 'Kazı Kazan', icon: 'fa-solid fa-wand-magic-sparkles', price: 20, bg: 'var(--gb-card-bg)', color: '#eab308' }
+                ],
+                vault: 0.00,
+                currentUserEmail: null
+            };
+            localStorage.setItem('goalbet_v5_db', JSON.stringify(db));
+        }
+        return db;
+    }
+
+    function saveDB(db) {
+        localStorage.setItem('goalbet_v5_db', JSON.stringify(db));
+    }
+
+    let db = getDB();
+    let currentUser = null;
+    let aviatorInterval = null;
+    let isShooting = false;
+
+    function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+    function initApp() {
+        db = getDB();
+        renderLobbyGames();
+        if(db.currentUserEmail) {
+            let u = db.users.find(x => x.email === db.currentUserEmail);
+            if(u && !u.isBanned) {
+                currentUser = u;
+                updateUserUI();
+            } else {
+                logout();
+            }
+        }
+    }
+
+    function renderLobbyGames() {
+        db = getDB();
+        const container = document.getElementById('dynamicLobbyGames');
+        container.innerHTML = db.games.map(g => `
+            <button class="menu-card" style="background: ${g.bg}; border-color: var(--gb-border);" onclick="playGame('${g.id}')">
+                <i class="${g.icon}" style="color:${g.color}; font-size:22px; margin-bottom:6px;"></i>
+                <span>${g.name} (₺${g.price})</span>
+            </button>
+        `).join('');
+    }
+
+    function handleRegister(e) {
+        e.preventDefault();
+        db = getDB();
+        let email = document.getElementById('regEmail').value;
+        let name = document.getElementById('regName').value;
+        let pass = document.getElementById('regPass').value;
+
+        if(db.users.find(u => u.email === email)) {
+            alert('Bu e-posta zaten kayıtlı!');
+            return;
+        }
+
+        let newUser = { name, email, pass, balance: 0.00, rank: 'ÜYE', isBanned: false };
+        db.users.push(newUser);
+        db.currentUserEmail = email;
+        saveDB(db);
+
+        currentUser = newUser;
+        updateUserUI();
+        closeModal('registerModal');
+        alert('Hesabınız oluşturuldu! Bakiyeniz: ₺0.00');
+    }
+
+    function handleLogin(e) {
+        e.preventDefault();
+        db = getDB();
+        let email = document.getElementById('loginEmail').value;
+        let pass = document.getElementById('loginPass').value;
+
+        let u = db.users.find(x => x.email === email && x.pass === pass);
+        if(!u) {
+            alert('Hatalı e-posta veya şifre!');
+            return;
+        }
+
+        if(u.isBanned) {
+            alert('Hesabınız YÖNETİCİ tarafından engellenmiştir!');
+            return;
+        }
+
+        currentUser = u;
+        db.currentUserEmail = email;
+        saveDB(db);
+
+        updateUserUI();
+        closeModal('loginModal');
+
+        if(currentUser.rank === 'ADMIN') {
+            openAdminPanel();
+        }
+    }
+
+    function logout() {
+        currentUser = null;
+        db = getDB();
+        db.currentUserEmail = null;
+        saveDB(db);
+
+        document.getElementById('authBtns').style.display = 'flex';
+        document.getElementById('userInfo').style.display = 'none';
+        document.getElementById('adminMenuBtn').style.display = 'none';
+        openHome();
+    }
+
+    function updateUserUI() {
+        if(currentUser) {
+            document.getElementById('authBtns').style.display = 'none';
+            document.getElementById('userInfo').style.display = 'flex';
+            document.getElementById('usernameDisplay').innerText = currentUser.name;
+            document.getElementById('balanceDisplay').innerText = '₺' + currentUser.balance.toFixed(2);
+            document.getElementById('rankDisplay').innerText = currentUser.rank;
+
+            if(currentUser.rank === 'ADMIN') {
+                document.getElementById('adminMenuBtn').style.display = 'flex';
+            } else {
+                document.getElementById('adminMenuBtn').style.display = 'none';
+            }
+        }
+    }
+
+    function syncUserBalance(amount) {
+        if(!currentUser) return;
+        currentUser.balance += amount;
+        db = getDB();
+        let idx = db.users.findIndex(u => u.email === currentUser.email);
+        if(idx > -1) {
+            db.users[idx].balance = currentUser.balance;
+            db.vault -= amount;
+            saveDB(db);
+        }
+        updateUserUI();
+    }
+
+    function openHome() {
+        if(aviatorInterval) clearInterval(aviatorInterval);
+        document.querySelectorAll('.page-panel').forEach(p => p.classList.remove('active'));
+        document.getElementById('homePanel').classList.add('active');
+        renderLobbyGames();
+    }
+
+    function openDepositPanel() {
+        if(!currentUser) { alert('Lütfen giriş yapın.'); openModal('loginModal'); return; }
+        document.querySelectorAll('.page-panel').forEach(p => p.classList.remove('active'));
+        document.getElementById('depositPanel').classList.add('active');
+    }
+
+    function handleDepositSubmit(e) {
+        e.preventDefault();
+        let sender = document.getElementById('depositSender').value;
+        let amount = parseFloat(document.getElementById('depositAmount').value);
+
+        db = getDB();
+        db.deposits.push({
+            id: Date.now(),
+            userEmail: currentUser.email,
+            userName: currentUser.name,
+            sender: sender,
+            amount: amount,
+            status: 'BEKLEYOR'
+        });
+        saveDB(db);
+
+        alert('Yatırım talebiniz yöneticiye iletildi! Onaylandığında bakiyenize yansıyacaktır.');
+        openHome();
+    }
+
+    function openWithdrawPanel() {
+        if(!currentUser) { alert('Lütfen giriş yapın.'); openModal('loginModal'); return; }
+        document.querySelectorAll('.page-panel').forEach(p => p.classList.remove('active'));
+        document.getElementById('withdrawPanel').classList.add('active');
+    }
+
+    function handleWithdrawSubmit(e) {
+        e.preventDefault();
+        let iban = document.getElementById('withdrawIban').value;
+        let amount = parseFloat(document.getElementById('withdrawAmount').value);
+
+        if(amount > currentUser.balance) {
+            alert('Yetersiz Bakiye! Mevcut Bakiyeniz: ₺' + currentUser.balance.toFixed(2));
+            return;
+        }
+
+        db = getDB();
+        db.withdrawals.push({
+            id: Date.now(),
+            userEmail: currentUser.email,
+            userName: currentUser.name,
+            iban: iban,
+            amount: amount,
+            status: 'BEKLEYOR'
+        });
+
+        syncUserBalance(-amount);
+        saveDB(db);
+
+        alert('Çekim talebiniz yöneticiye iletildi!');
+        openHome();
+    }
+
+    function openSupportPanel() {
+        if(!currentUser) { alert('Lütfen önce giriş yapın.'); openModal('loginModal'); return; }
+        document.querySelectorAll('.page-panel').forEach(p => p.classList.remove('active'));
+        document.getElementById('supportPanel').classList.add('active');
+        renderUserChat();
+    }
+
+    function renderUserChat() {
+        db = getDB();
+        const box = document.getElementById('userChatBox');
+        let userMsgs = db.messages.filter(m => m.userEmail === currentUser.email);
+        
+        if(userMsgs.length === 0) {
+            box.innerHTML = `<p style="font-size:11px; color:var(--gb-text-sub); text-align:center;">Henüz mesaj yok. Yöneticimizle buradan konuşabilirsiniz.</p>`;
+            return;
+        }
+
+        box.innerHTML = userMsgs.map(m => `
+            <div class="chat-msg ${m.isAdmin ? 'msg-admin' : 'msg-user'}">
+                <span class="msg-author">${m.isAdmin ? 'Sistem Admini' : m.userName}</span>
+                ${m.text}
+            </div>
+        `).join('');
+        box.scrollTop = box.scrollHeight;
+    }
+
+    function sendUserMessage() {
+        let input = document.getElementById('userChatInput');
+        let text = input.value.trim();
+        if(!text) return;
+
+        db = getDB();
+        db.messages.push({
+            userEmail: currentUser.email,
+            userName: currentUser.name,
+            text: text,
+            isAdmin: false,
+            time: new Date().toLocaleTimeString()
+        });
+        saveDB(db);
+        input.value = '';
+        renderUserChat();
+    }
+
+    function loadAdminChat() {
+        db = getDB();
+        let select = document.getElementById('adminChatUserSelect');
+        let targetEmail = select.value;
+        const box = document.getElementById('adminChatBox');
+
+        if(!targetEmail) {
+            box.innerHTML = `<p style="font-size:11px; color:var(--gb-text-sub);">Lütfen kullanıcı seçin.</p>`;
+            return;
+        }
+
+        let msgs = db.messages.filter(m => m.userEmail === targetEmail);
+        box.innerHTML = msgs.map(m => `
+            <div class="chat-msg ${m.isAdmin ? 'msg-admin' : 'msg-user'}">
+                <span class="msg-author">${m.isAdmin ? 'Siz (Admin)' : m.userName}</span>
+                ${m.text}
+            </div>
+        `).join('');
+        box.scrollTop = box.scrollHeight;
+    }
+
+    function sendAdminMessage() {
+        let select = document.getElementById('adminChatUserSelect');
+        let targetEmail = select.value;
+        let input = document.getElementById('adminChatInput');
+        let text = input.value.trim();
+
+        if(!targetEmail || !text) return;
+
+        db = getDB();
+        let targetUser = db.users.find(u => u.email === targetEmail);
+
+        db.messages.push({
+            userEmail: targetEmail,
+            userName: targetUser ? targetUser.name : 'Kullanıcı',
+            text: text,
+            isAdmin: true,
+            time: new Date().toLocaleTimeString()
+        });
+        saveDB(db);
+        input.value = '';
+        loadAdminChat();
+    }
+
+    function openProfile() {
+        if(!currentUser) { alert('Lütfen giriş yapın.'); openModal('loginModal'); return; }
+        document.querySelectorAll('.page-panel').forEach(p => p.classList.remove('active'));
+        document.getElementById('profilePanel').classList.add('active');
+
+        document.getElementById('profileContent').innerHTML = `
+            <p style="font-size:13px; margin-bottom:6px;"><strong>İsim:</strong> ${currentUser.name}</p>
+            <p style="font-size:13px; margin-bottom:6px;"><strong>E-Posta:</strong> ${currentUser.email}</p>
+            <p style="font-size:13px; margin-bottom:6px;"><strong>Rütbe:</strong> ${currentUser.rank}</p>
+            <p style="font-size:13px; color:var(--gb-accent);"><strong>Mevcut Bakiye:</strong> ₺${currentUser.balance.toFixed(2)}</p>
+            <button class="btn-submit btn-red" onclick="logout()" style="margin-top:15px;">ÇIKIŞ YAP</button>
+        `;
+    }
+
+    function openAdminPanel() {
+        if(!currentUser || currentUser.rank !== 'ADMIN') { alert('Yetkiniz Yok!'); return; }
+        document.querySelectorAll('.page-panel').forEach(p => p.classList.remove('active'));
+        document.getElementById('adminPanel').classList.add('active');
+
+        db = getDB();
+
+        document.getElementById('statUsers').innerText = db.users.length;
+        let totalBal = db.users.reduce((acc, u) => acc + u.balance, 0);
+        document.getElementById('statTotalUserBalance').innerText = '₺' + totalBal.toFixed(2);
+        let pendingCount = (db.withdrawals ? db.withdrawals.filter(w => w.status === 'BEKLEYOR').length : 0) + 
+                             (db.deposits ? db.deposits.filter(d => d.status === 'BEKLEYOR').length : 0);
+        document.getElementById('statPendingRequests').innerText = pendingCount;
+        document.getElementById('statVault').innerText = '₺' + db.vault.toFixed(2);
+
+        // Mevcut Oyun Ayarları / İsim-Fiyat Düzenleme
+        const gameSet = document.getElementById('gameSettingsAdmin');
+        gameSet.innerHTML = db.games.map((g, index) => `
+            <div class="card-box">
+                <div style="font-weight:bold; font-size:12px; color:var(--gb-accent); margin-bottom:4px;">
+                    <i class="${g.icon}"></i> ${g.name}
+                </div>
+                <div style="display:flex; gap:6px; margin-top:5px;">
+                    <div style="flex:1;">
+                        <label style="font-size:10px;">Oyun Adı:</label>
+                        <input type="text" id="gName_${index}" value="${g.name}" class="admin-input">
+                    </div>
+                    <div style="flex:1;">
+                        <label style="font-size:10px;">Fiyat (₺):</label>
+                        <input type="number" id="gPrice_${index}" value="${g.price}" class="admin-input">
+                    </div>
+                </div>
+                <button class="btn-submit" onclick="adminUpdateGame(${index})" style="margin-top:6px; padding:6px; font-size:11px;">GÜNCELLE</button>
+            </div>
+        `).join('');
+
+        let select = document.getElementById('adminChatUserSelect');
+        select.innerHTML = db.users.map(u => `<option value="${u.email}">${u.name} (${u.email})</option>`).join('');
+        loadAdminChat();
+
+        // Para Yatırma Talepleri
+        const depList = document.getElementById('depositRequestsAdmin');
+        if(!db.deposits || db.deposits.length === 0) {
+            depList.innerHTML = `<p style="font-size:11px; color:var(--gb-text-sub);">Yatırım talebi yok.</p>`;
+        } else {
+            depList.innerHTML = db.deposits.map((d) => `
+                <div class="card-box" style="border-left:4px solid var(--gb-accent);">
+                    <p style="font-size:12px;"><strong>Kullanıcı:</strong> ${d.userName} (${d.userEmail})</p>
+                    <p style="font-size:12px;"><strong>Gönderen:</strong> ${d.sender}</p>
+                    <p style="font-size:13px; color:var(--gb-accent);"><strong>Miktar:</strong> ₺${d.amount.toFixed(2)}</p>
+                    <p style="font-size:11px; color:var(--gb-text-sub);">Durum: ${d.status}</p>
+                    ${d.status === 'BEKLEYOR' ? `
+                        <div style="display:flex; gap:5px; margin-top:5px;">
+                            <button class="btn-submit" onclick="adminApproveDeposit(${d.id})">ONAYLA (BAKİYE EKLE)</button>
+                            <button class="btn-submit btn-red" onclick="adminRejectDeposit(${d.id})">REDDET</button>
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        // Para Çekme Talepleri
+        const reqList = document.getElementById('withdrawRequestsAdmin');
+        if(!db.withdrawals || db.withdrawals.length === 0) {
+            reqList.innerHTML = `<p style="font-size:11px; color:var(--gb-text-sub);">Çekim talebi yok.</p>`;
+        } else {
+            reqList.innerHTML = db.withdrawals.map((w) => `
+                <div class="card-box" style="border-left:4px solid var(--gb-gold);">
+                    <p style="font-size:12px;"><strong>Kullanıcı:</strong> ${w.userName} (${w.userEmail})</p>
+                    <p style="font-size:12px;"><strong>İBAN:</strong> ${w.iban}</p>
+                    <p style="font-size:13px; color:var(--gb-gold);"><strong>Miktar:</strong> ₺${w.amount.toFixed(2)}</p>
+                    <p style="font-size:11px; color:var(--gb-text-sub);">Durum: ${w.status}</p>
+                    ${w.status === 'BEKLEYOR' ? `
+                        <div style="display:flex; gap:5px; margin-top:5px;">
+                            <button class="btn-submit" onclick="adminApproveWithdraw(${w.id})">ONAYLA</button>
+                            <button class="btn-submit btn-red" onclick="adminRejectWithdraw(${w.id})">REDDET (İADE ET)</button>
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        const userList = document.getElementById('userListAdmin');
+        userList.innerHTML = db.users.map((u, i) => `
+            <div class="card-box">
+                <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:13px;">
+                    <span>${u.name} [${u.rank}]</span>
+                    <span style="color:${u.isBanned ? 'var(--gb-red)' : 'var(--gb-accent)'}">${u.isBanned ? 'BANLI' : 'AKTİF'}</span>
+                </div>
+                <p style="font-size:11px; color:var(--gb-text-sub);">${u.email}</p>
+                <div style="margin-top:8px;">
+                    <label style="font-size:10px;">Bakiye Düzenle (₺):</label>
+                    <input type="number" id="balInput_${i}" value="${u.balance}" class="admin-input">
+                    <label style="font-size:10px; margin-top:5px; display:block;">Rütbe Değiştir:</label>
+                    <select id="rankInput_${i}" class="admin-input">
+                        <option value="ÜYE" ${u.rank==='ÜYE'?'selected':''}>ÜYE</option>
+                        <option value="VIP" ${u.rank==='VIP'?'selected':''}>VIP</option>
+                        <option value="MODERATÖR" ${u.rank==='MODERATÖR'?'selected':''}>MODERATÖR</option>
+                        <option value="ADMIN" ${u.rank==='ADMIN'?'selected':''}>ADMIN</option>
+                    </select>
+                    <div style="display:flex; gap:5px; margin-top:6px;">
+                        <button class="btn-submit" onclick="adminUpdateUser(${i})">Kaydet</button>
+                        <button class="btn-submit btn-red" onclick="adminToggleBan(${i})">${u.isBanned ? 'Ban Kaldır' : 'Banla'}</button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function adminUpdateGame(index) {
+        db = getDB();
+        let newName = document.getElementById(`gName_${index}`).value.trim();
+        let newPrice = parseFloat(document.getElementById(`gPrice_${index}`).value);
+
+        if(!newName || isNaN(newPrice)) { alert('Lütfen geçerli isim ve fiyat girin!'); return; }
+
+        db.games[index].name = newName;
+        db.games[index].price = newPrice;
+        saveDB(db);
+
+        alert('Oyun bilgileri güncellendi!');
+        renderLobbyGames();
+        openAdminPanel();
+    }
+
+    function addNewGame() {
+        let title = document.getElementById('newGameTitle').value.trim();
+        let icon = document.getElementById('newGameIcon').value.trim() || 'fa-solid fa-gamepad';
+        let price = parseFloat(document.getElementById('newGamePrice').value) || 50;
+
+        if(!title) { alert('Lütfen oyun adı girin!'); return; }
+
+        db = getDB();
+        let id = 'Game_' + Date.now();
+        db.games.push({
+            id: id,
+            name: title,
+            icon: icon,
+            price: price,
+            bg: 'linear-gradient(135deg, #1f2937, #111827)',
+            color: '#22c55e'
+        });
+        saveDB(db);
+
+        document.getElementById('newGameTitle').value = '';
+        document.getElementById('newGameIcon').value = '';
+        document.getElementById('newGamePrice').value = '';
+
+        alert(`${title} başarıyla eklendi ve Lobiye yerleştirildi!`);
+        renderLobbyGames();
+        openAdminPanel();
+    }
+
+    function adminApproveDeposit(id) {
+        db = getDB();
+        let item = db.deposits.find(d => d.id === id);
+        if(item && item.status === 'BEKLEYOR') {
+            item.status = 'ONAYLANDI';
+            let u = db.users.find(x => x.email === item.userEmail);
+            if(u) {
+                u.balance += item.amount;
+                if(currentUser && currentUser.email === u.email) {
+                    currentUser.balance = u.balance;
+                    updateUserUI();
+                }
+            }
+            saveDB(db);
+            alert('Para Yatırma Onaylandı ve Bakiye Eklendi!');
+            openAdminPanel();
+        }
+    }
+
+    function adminRejectDeposit(id) {
+        db = getDB();
+        let item = db.deposits.find(d => d.id === id);
+        if(item) {
+            item.status = 'REDDEDİLDİ';
+            saveDB(db);
+            alert('Talep Reddedildi!');
+            openAdminPanel();
+        }
+    }
+
+    function adminApproveWithdraw(id) {
+        db = getDB();
+        let item = db.withdrawals.find(w => w.id === id);
+        if(item) {
+            item.status = 'ONAYLANDI';
+            saveDB(db);
+            alert('Çekim Talebi Onaylandı!');
+            openAdminPanel();
+        }
+    }
+
+    function adminRejectWithdraw(id) {
+        db = getDB();
+        let item = db.withdrawals.find(w => w.id === id);
+        if(item && item.status === 'BEKLEYOR') {
+            item.status = 'REDDEDİLDİ';
+            let u = db.users.find(x => x.email === item.userEmail);
+            if(u) {
+                u.balance += item.amount;
+                if(currentUser && currentUser.email === u.email) {
+                    currentUser.balance = u.balance;
+                    updateUserUI();
+                }
+            }
+            saveDB(db);
+            alert('Talep Reddedildi ve Bakiye İade Edildi!');
+            openAdminPanel();
+        }
+    }
+
+    function adminUpdateUser(index) {
+        db = getDB();
+        let val = parseFloat(document.getElementById(`balInput_${index}`).value);
+        let rank = document.getElementById(`rankInput_${index}`).value;
+        db.users[index].balance = val;
+        db.users[index].rank = rank;
+        saveDB(db);
+        if(currentUser.email === db.users[index].email) { 
+            currentUser.balance = val; 
+            currentUser.rank = rank;
+            updateUserUI(); 
+        }
+        alert('Kullanıcı güncellendi!');
+        openAdminPanel();
+    }
+
+    function adminToggleBan(index) {
+        db = getDB();
+        db.users[index].isBanned = !db.users[index].isBanned;
+        saveDB(db);
+        alert('Ban durumu değiştirildi!');
+        openAdminPanel();
+    }
+
+    // OYUNLAR VE ANİMASYON EKLENTİLERİ
+    function playGame(gameType) {
+        if(!currentUser) { alert('Giriş yapmalısınız.'); openModal('loginModal'); return; }
+        if(aviatorInterval) clearInterval(aviatorInterval);
+        document.querySelectorAll('.page-panel').forEach(p => p.classList.remove('active'));
+        document.getElementById('gamePanel').classList.add('active');
+        const container = document.getElementById('gameContent');
+        db = getDB();
+
+        let gameObj = db.games.find(g => g.id === gameType);
+        let cost = gameObj ? gameObj.price : 50;
+
+        if(gameType === 'Penalty') {
+            document.getElementById('gameTitle').innerText = "Penaltı Vurma Oyunu";
+            container.innerHTML = `
+                <div class="game-box">
+                    <p style="font-size:12px; color:var(--gb-text-sub);">Köşeyi seç ve şutunu çek! (Giriş: ₺${cost})</p>
+                    <div class="penalty-field">
+                        <div class="keeper" id="penaltyKeeper"><i class="fa-solid fa-child-reaching"></i></div>
+                        <div class="penalty-goal">
+                            <div class="penalty-targets">
+                                <div class="target-btn" onclick="shootPenalty(1, ${cost})">SOL ÜST</div>
+                                <div class="target-btn" onclick="shootPenalty(2, ${cost})">ORTA ÜST</div>
+                                <div class="target-btn" onclick="shootPenalty(3, ${cost})">SAĞ ÜST</div>
+                                <div class="target-btn" onclick="shootPenalty(4, ${cost})">SOL ALT</div>
+                                <div class="target-btn" onclick="shootPenalty(5, ${cost})">ORTA ALT</div>
+                                <div class="target-btn" onclick="shootPenalty(6, ${cost})">SAĞ ALT</div>
+                            </div>
+                        </div>
+                        <div class="ball" id="penaltyBall"><i class="fa-solid fa-futbol"></i></div>
+                    </div>
+                    <p id="penaltyMsg" style="font-weight:bold; font-size:14px; color:var(--gb-gold); min-height:25px;"></p>
+                </div>
+            `;
+        } else if(gameType === 'GatesOfOlympus') {
+            document.getElementById('gameTitle').innerText = "Gates of Olympus";
+            container.innerHTML = `
+                <div class="game-box">
+                    <i class="fa-solid fa-bolt-lightning zeus-icon" id="zeusIcon"></i>
+                    <p id="zeusResult" style="font-size:15px; font-weight:900; color:var(--gb-accent); margin:12px 0;">Zeus Gücünü Göstermeye Hazır!</p>
+                    <button class="btn-submit" onclick="spinZeus(${cost})">SPIN (₺${cost})</button>
+                </div>
+            `;
+        } else if(gameType === 'Blackjack') {
+            document.getElementById('gameTitle').innerText = "Blackjack 21";
+            container.innerHTML = `
+                <div class="game-box">
+                    <p style="font-size:12px; color:var(--gb-text-sub);">Kurpiyeri geç ve 21'e ulaş!</p>
+                    <div style="margin:10px 0;"><span style="font-size:11px;">KURPİYER:</span><div class="bj-cards" id="dealerCards"><div class="card">?</div></div></div>
+                    <div style="margin:10px 0;"><span style="font-size:11px;">SEN:</span><div class="bj-cards" id="playerCards"></div></div>
+                    <p id="bjStatus" style="font-weight:bold; color:var(--gb-gold); margin:10px 0; min-height:20px;"></p>
+                    <div style="display:flex; gap:6px;">
+                        <button class="btn-submit" id="bjStartBtn" onclick="startBlackjack(${cost})">BAŞLA (₺${cost})</button>
+                        <button class="btn-submit btn-gold" id="bjHitBtn" style="display:none;" onclick="hitBlackjack()">KART ÇEK</button>
+                        <button class="btn-submit" id="bjStandBtn" style="display:none; background:var(--gb-accent);" onclick="standBlackjack(${cost})">KAL</button>
+                    </div>
+                </div>
+            `;
+        } else if(gameType === 'Aviator') {
+            document.getElementById('gameTitle').innerText = "Aviator Game";
+            container.innerHTML = `
+                <div class="game-box">
+                    <div class="aviator-screen">
+                        <i class="fa-solid fa-plane-up" id="planeIcon" style="font-size:32px; color:var(--gb-red); position:absolute; bottom:10px; left:10px;"></i>
+                        <div style="font-size:32px; font-weight:900; color:var(--gb-accent);" id="aviatorMultiplier">1.00x</div>
+                    </div>
+                    <p id="aviatorMsg" style="font-weight:bold; margin-bottom:8px; font-size:12px; color:var(--gb-gold);"></p>
+                    <button class="btn-submit" id="aviatorBtn" onclick="startAviator(${cost})">BAHİS YAP (₺${cost})</button>
+                </div>
+            `;
+        } else if(gameType === 'SweetBonanza') {
+            document.getElementById('gameTitle').innerText = "Sweet Bonanza";
+            container.innerHTML = `
+                <div class="game-box">
+                    <div class="bonanza-grid" id="bonanzaGrid">
+                        <div class="bonanza-cell">🍬</div><div class="bonanza-cell">🍭</div><div class="bonanza-cell">🍇</div><div class="bonanza-cell">🍉</div>
+                        <div class="bonanza-cell">🍌</div><div class="bonanza-cell">🍎</div><div class="bonanza-cell">🍬</div><div class="bonanza-cell">💣</div>
+                    </div>
+                    <p id="bonanzaStatus" style="font-weight:bold; color:var(--gb-accent); margin:8px 0; min-height:20px;"></p>
+                    <button class="btn-submit" onclick="spinBonanza(${cost})">SPIN (₺${cost})</button>
+                </div>
+            `;
+        } else if(gameType === 'KaziKazan') {
+            document.getElementById('gameTitle').innerText = "Kazı Kazan VIP";
+            container.innerHTML = `
+                <div class="game-box">
+                    <div style="background:linear-gradient(135deg, #059669, #10b981); height:110px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:900; cursor:pointer;" onclick="scratchCard(this, ${cost})">
+                        KAZIMAK İÇİN TIKLA (₺${cost})
+                    </div>
+                </div>
+            `;
+        } else {
+            // YENİ EKLENEN GENEL OYUN ŞABLONU
+            let title = gameObj ? gameObj.name : 'Özel Oyun';
+            document.getElementById('gameTitle').innerText = title;
+            container.innerHTML = `
+                <div class="game-box">
+                    <i class="${gameObj ? gameObj.icon : 'fa-solid fa-gamepad'}" style="font-size:50px; color:var(--gb-accent); margin-bottom:15px;"></i>
+                    <p style="font-size:14px; font-weight:bold; color:var(--gb-gold); margin-bottom:15px;">${title} Masasına Hoşgeldiniz!</p>
+                    <button class="btn-submit" onclick="playGenericGame(${cost})">BAHİS OYNA (₺${cost})</button>
+                    <p id="genericGameMsg" style="margin-top:15px; font-weight:bold; font-size:14px;"></p>
+                </div>
+            `;
+        }
+    }
+
+    function playGenericGame(cost) {
+        if(currentUser.balance < cost) { alert('Yetersiz Bakiye!'); return; }
+        syncUserBalance(-cost);
+        const msg = document.getElementById('genericGameMsg');
+        msg.innerText = "Oyun Oynanıyor...";
+        msg.style.color = "var(--gb-gold)";
+
+        setTimeout(() => {
+            if(Math.random() > 0.5) {
+                let win = cost * 2;
+                msg.innerText = `TEBRİKLER! ₺${win} KAZANDINIZ!`;
+                msg.style.color = "var(--gb-accent)";
+                syncUserBalance(win);
+            } else {
+                msg.innerText = "Üzgünüz, bu tur şansınız yaver gitmedi.";
+                msg.style.color = "var(--gb-red)";
+            }
+        }, 600);
+    }
+
+    // PENALTI ANİMASYONLU LOJİK
+    function shootPenalty(target, cost) {
+        if(isShooting) return;
+        if(currentUser.balance < cost) { alert('Yetersiz Bakiye!'); return; }
+        
+        isShooting = true;
+        syncUserBalance(-cost);
+
+        const ball = document.getElementById('penaltyBall');
+        const keeper = document.getElementById('penaltyKeeper');
+        const msg = document.getElementById('penaltyMsg');
+        msg.innerText = "Şut çekiliyor...";
+
+        let keeperChoice = Math.floor(Math.random() * 6) + 1;
+
+        const posMap = {
+            1: { ballBottom: '110px', ballLeft: '22%', keeperLeft: '22%' },
+            2: { ballBottom: '110px', ballLeft: '50%', keeperLeft: '50%' },
+            3: { ballBottom: '110px', ballLeft: '78%', keeperLeft: '78%' },
+            4: { ballBottom: '30px',  ballLeft: '22%', keeperLeft: '22%' },
+            5: { ballBottom: '30px',  ballLeft: '50%', keeperLeft: '50%' },
+            6: { ballBottom: '30px',  ballLeft: '78%', keeperLeft: '78%' }
+        };
+
+        ball.style.bottom = posMap[target].ballBottom;
+        ball.style.left = posMap[target].ballLeft;
+        keeper.style.left = posMap[keeperChoice].keeperLeft;
+
+        setTimeout(() => {
+            if(target !== keeperChoice) {
+                let win = cost * 2;
+                msg.innerText = `⚽ GOOOOL!! ₺${win} Kazandınız!`;
+                msg.style.color = "var(--gb-accent)";
+                syncUserBalance(win);
+            } else {
+                msg.innerText = `❌ KURTARILDI! Kaleci topu çeldi.`;
+                msg.style.color = "var(--gb-red)";
+            }
+
+            setTimeout(() => {
+                ball.style.bottom = '15px';
+                ball.style.left = '50%';
+                keeper.style.left = '50%';
+                isShooting = false;
+            }, 1200);
+        }, 500);
+    }
+
+    // GATES OF OLYMPUS ANİMASYONLU LOJİK
+    function spinZeus(cost) {
+        if(currentUser.balance < cost) { alert('Yetersiz Bakiye!'); return; }
+        syncUserBalance(-cost);
+
+        const icon = document.getElementById('zeusIcon');
+        const result = document.getElementById('zeusResult');
+
+        icon.classList.add('zeus-spin');
+        result.innerText = "Şimşekler Çakıyor...";
+        result.style.color = "var(--gb-gold)";
+
+        setTimeout(() => {
+            icon.classList.remove('zeus-spin');
+            if(Math.random() > 0.4) {
+                let win = Math.floor(cost * 3);
+                result.innerText = `⚡ ZEUS DÖNDÜ: ₺${win} KAZANÇ!`;
+                result.style.color = "var(--gb-accent)";
+                syncUserBalance(win);
+            } else {
+                result.innerText = "⚡ Şimşek Boşa Çıktı!";
+                result.style.color = "var(--gb-red)";
+            }
+        }, 800);
+    }
+
+    /* Diğer Oyun Lojikleri */
+    let pCards = [], dCards = [];
+    function startBlackjack(cost) {
+        if(currentUser.balance < cost) { alert('Yetersiz Bakiye!'); return; }
+        syncUserBalance(-cost);
+        pCards = [Math.floor(Math.random()*10)+2, Math.floor(Math.random()*10)+2];
+        dCards = [Math.floor(Math.random()*10)+2];
+        document.getElementById('bjStartBtn').style.display = 'none';
+        document.getElementById('bjHitBtn').style.display = 'inline-block';
+        document.getElementById('bjStandBtn').style.display = 'inline-block';
+        document.getElementById('bjStatus').innerText = "Kart Çek ya da Kal!";
+        renderBJ();
+    }
+
+    function renderBJ() {
+        document.getElementById('playerCards').innerHTML = pCards.map(c => `<div class="card">${c}</div>`).join('');
+        document.getElementById('dealerCards').innerHTML = dCards.map(c => `<div class="card">${c}</div>`).join('');
+    }
+
+    function hitBlackjack() {
+        pCards.push(Math.floor(Math.random()*10)+2);
+        renderBJ();
+        if(pCards.reduce((a,b)=>a+b,0) > 21) {
+            document.getElementById('bjStatus').innerText = "KAYBETTİNİZ! (21'i geçtiniz)";
+            resetBJBtns();
+        }
+    }
+
+    function standBlackjack(cost) {
+        let dSum = dCards.reduce((a,b)=>a+b,0);
+        while(dSum < 17) {
+            let c = Math.floor(Math.random()*10)+2;
+            dCards.push(c);
+            dSum += c;
+        }
+        renderBJ();
+        let pSum = pCards.reduce((a,b)=>a+b,0);
+        if(dSum > 21 || pSum > dSum) {
+            let win = cost * 2;
+            document.getElementById('bjStatus').innerText = `TEBRİKLER! ₺${win} KAZANDINIZ!`;
+            syncUserBalance(win);
+        } else if(pSum === dSum) {
+            document.getElementById('bjStatus').innerText = "BERABERE!";
+            syncUserBalance(cost);
+        } else {
+            document.getElementById('bjStatus').innerText = "KURPİYER KAZANDI!";
+        }
+        resetBJBtns();
+    }
+
+    function resetBJBtns() {
+        document.getElementById('bjStartBtn').style.display = 'inline-block';
+        document.getElementById('bjHitBtn').style.display = 'none';
+        document.getElementById('bjStandBtn').style.display = 'none';
+    }
+
+    let isAviatorRunning = false, currentMult = 1.00;
+    function startAviator(cost) {
+        const btn = document.getElementById('aviatorBtn');
+        if(!isAviatorRunning) {
+            if(currentUser.balance < cost) { alert('Yetersiz Bakiye!'); return; }
+            syncUserBalance(-cost);
+            isAviatorRunning = true; currentMult = 1.00;
+            btn.innerText = "BOZDUR (KAZANCI AL)"; btn.style.background = "var(--gb-gold)"; btn.style.color = "#000";
+            document.getElementById('aviatorMsg').innerText = "";
+            const crashPoint = (Math.random() * 3.5 + 1.2).toFixed(2);
+
+            aviatorInterval = setInterval(() => {
+                currentMult += 0.04;
+                document.getElementById('aviatorMultiplier').innerText = currentMult.toFixed(2) + 'x';
+                if(currentMult >= crashPoint) {
+                    clearInterval(aviatorInterval);
+                    isAviatorRunning = false;
+                    document.getElementById('aviatorMultiplier').innerText = "PATLADI!";
+                    document.getElementById('aviatorMultiplier').style.color = "var(--gb-red)";
+                    btn.innerText = `TEKRAR OYNA (₺${cost})`; btn.style.background = "var(--gb-primary)"; btn.style.color = "#fff";
+                }
+            }, 100);
+        } else {
+            clearInterval(aviatorInterval);
+            isAviatorRunning = false;
+            let winAmount = Math.floor(cost * currentMult);
+            syncUserBalance(winAmount);
+            document.getElementById('aviatorMsg').innerText = `TEBRİKLER! ₺${winAmount} KAZANDINIZ!`;
+            btn.innerText = `BAHİS YAP (₺${cost})`; btn.style.background = "var(--gb-primary)"; btn.style.color = "#fff";
+        }
+    }
+
+    function spinBonanza(cost) {
+        if(currentUser.balance < cost) { alert('Yetersiz Bakiye!'); return; }
+        syncUserBalance(-cost);
+        const items = ['🍬', '🍭', '🍇', '🍉', '🍌', '🍎', '💣 50X'];
+        let counts = {};
+        document.querySelectorAll('.bonanza-cell').forEach(c => {
+            const rand = items[Math.floor(Math.random() * items.length)];
+            c.innerText = rand; counts[rand] = (counts[rand] || 0) + 1;
+        });
+        if(Object.values(counts).some(v => v >= 3)) {
+            let win = Math.floor(cost * 2.5);
+            document.getElementById('bonanzaStatus').innerText = `KAZANDINIZ: ₺${win}!`;
+            syncUserBalance(win);
+        } else {
+            document.getElementById('bonanzaStatus').innerText = "Bu tur kazanç çıkmadı.";
+        }
+    }
+
+    function scratchCard(el, cost) {
+        if(currentUser.balance < cost) { alert('Yetersiz Bakiye!'); return; }
+        syncUserBalance(-cost);
+        let prize = [cost * 2, cost * 3, 0, cost * 1.5][Math.floor(Math.random() * 4)];
+        if(prize > 0) {
+            el.innerText = `₺${prize} KAZANDINIZ!`; el.style.background = "var(--gb-gold)";
+            syncUserBalance(prize);
+        } else {
+            el.innerText = "PAS (Tekrar Deneyin)"; el.style.background = "var(--gb-red)";
+        }
+    }
+
+    initApp();
+</script>
+
+</body>
+</html>
