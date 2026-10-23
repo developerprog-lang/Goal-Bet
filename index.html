@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Goal Bet - Casino & İddaa v18.0 Final Fix</title>
+<title>Goal Bet - Casino & İddaa v19.0 Production Final</title>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 <style>
 :root {
@@ -182,14 +182,15 @@ body { background-color: var(--gb-bg); color: var(--gb-text); padding-bottom: 75
 <div id="homePanel" class="page-panel active">
 <div class="banner">
 <div class="banner-title">GOALBET CASINO & İDDAA</div>
-<div class="banner-subtitle">SWEET BONANZA, AVIATOR & PENALTI v18.0</div>
+<div class="banner-subtitle">SWEET BONANZA, AVIATOR & PENALTI v19.0</div>
 </div>
 
 <div class="grid-container">
+<!-- HAFTALIK VIP BONUS ÇARKI -->
 <button class="menu-card" id="dailyWheelBtn" style="background: linear-gradient(135deg, #854d0e, #ca8a04); border-color:var(--gb-gold);" onclick="claimDailyBonus()">
 <i class="fa-solid fa-gift" style="color:#fff; font-size:26px;"></i>
-<span style="color:#fff; font-weight:900;">GÜNLÜK VIP BONUS ÇARKI</span>
-<span class="limits" style="color:#fef08a;">Her Gün ₺50 - ₺500 Hediye!</span>
+<span style="color:#fff; font-weight:900;">HAFTALIK VIP BONUS ÇARKI</span>
+<span class="limits" style="color:#fef08a;">Her Hafta ₺1 - ₺10 Hediye!</span>
 </button>
 
 <button class="menu-card" id="adminMenuBtn" style="display:none; background: linear-gradient(135deg, #1e1b4b, #312e81); border-color:var(--gb-gold);" onclick="openAdminPanel()">
@@ -261,7 +262,7 @@ body { background-color: var(--gb-bg); color: var(--gb-text); padding-bottom: 75
 
 <!-- GELİŞMİŞ ADMIN PANELİ -->
 <div id="adminPanel" class="page-panel">
-<h3 style="margin: 15px 0 10px 0; color: var(--gb-gold); font-size:18px; font-weight:900;"><i class="fa-solid fa-sliders"></i> YÖNETİM PANELİ v18.0</h3>
+<h3 style="margin: 15px 0 10px 0; color: var(--gb-gold); font-size:18px; font-weight:900;"><i class="fa-solid fa-sliders"></i> YÖNETİM PANELİ v19.0</h3>
 
 <div class="admin-stats">
 <div class="stat-card"><p>TOPLAM KULLANICI</p><h4 id="statUsers">0</h4></div>
@@ -370,7 +371,7 @@ body { background-color: var(--gb-bg); color: var(--gb-text); padding-bottom: 75
 let currentUser = null;
 
 function getDB() {
-  let db = JSON.parse(localStorage.getItem('goalbet_v18_final'));
+  let db = JSON.parse(localStorage.getItem('goalbet_v19_prod'));
   if(!db) {
     db = {
       users: [
@@ -394,10 +395,9 @@ function getDB() {
       vault: 0.00,
       currentUserEmail: null
     };
-    localStorage.setItem('goalbet_v18_final', JSON.stringify(db));
+    localStorage.setItem('goalbet_v19_prod', JSON.stringify(db));
   }
 
-  // SENKRONİZASYON DÜZELTMESİ (Aktif kullanıcının hafızasını taze tutar)
   if (db.currentUserEmail && db.users) {
     let freshUser = db.users.find(u => u.email.toLowerCase().trim() === db.currentUserEmail.toLowerCase().trim());
     if (freshUser) {
@@ -409,7 +409,7 @@ function getDB() {
 }
 
 function saveDB(db) {
-  localStorage.setItem('goalbet_v18_final', JSON.stringify(db));
+  localStorage.setItem('goalbet_v19_prod', JSON.stringify(db));
 }
 
 let db = getDB();
@@ -513,7 +513,7 @@ function logout() {
 }
 
 function updateUserUI() {
-  db = getDB(); // Veritabanından en güncel bilgileri çekip ekrana yaz
+  db = getDB();
   if(currentUser) {
     document.getElementById('authBtns').style.display = 'none';
     document.getElementById('userInfo').style.display = 'flex';
@@ -542,26 +542,38 @@ function syncUserBalance(amount) {
   updateUserUI();
 }
 
+/* HAFTALIK VIP BONUS ÇARKI */
 function claimDailyBonus() {
   if(!currentUser) { alert('Lütfen önce giriş yapın.'); openModal('loginModal'); return; }
+  db = getDB();
+  let idx = db.users.findIndex(u => u.email.toLowerCase().trim() === currentUser.email.toLowerCase().trim());
+  if(idx === -1) return;
+
+  let userInDb = db.users[idx];
   let now = Date.now();
-  let last = currentUser.lastBonusTime || 0;
-  let cooldown = 24 * 60 * 60 * 1000;
+  let last = userInDb.lastBonusTime || 0;
+  let cooldown = 7 * 24 * 60 * 60 * 1000; // 7 gün
 
   if(now - last < cooldown) {
-    let hoursLeft = Math.ceil((cooldown - (now - last)) / (1000 * 60 * 60));
-    alert(`Bugünkü günlük bonusunuzu zaten aldınız! Tekrar almak için ${hoursLeft} saat beklemelisiniz.`);
+    let daysLeft = Math.ceil((cooldown - (now - last)) / (1000 * 60 * 60 * 24));
+    alert(`Haftalık bonusunuzu zaten aldınız! Tekrar almak için ${daysLeft} gün beklemelisiniz.`);
     return;
   }
 
-  let rewardAmounts = [50, 100, 150, 200, 300, 500];
-  let prize = rewardAmounts[Math.floor(Math.random() * rewardAmounts.length)];
+  let prize = Math.floor(Math.random() * 10) + 1;
 
+  userInDb.lastBonusTime = now;
+  userInDb.balance += prize;
+  db.vault -= prize;
+  
+  currentUser.balance = userInDb.balance;
   currentUser.lastBonusTime = now;
-  syncUserBalance(prize);
-  logTransaction(currentUser.email, 'VIP Günlük Bonus', prize, 'Bonus Çarkı Ödülü');
 
-  alert(`TEBRİKLER! VIP Çarkından ₺${prize}.00 Günlük Bonus Kazandınız! Bakiyenize eklendi.`);
+  saveDB(db);
+  updateUserUI();
+
+  logTransaction(currentUser.email, 'VIP Haftalık Bonus', prize, 'Haftalık Çark Ödülü');
+  alert(`TEBRİKLER! VIP Çarkından ₺${prize}.00 Haftalık Bonus Kazandınız! Bakiyenize eklendi.`);
 }
 
 function openHome() {
@@ -1216,7 +1228,6 @@ function openAdminPanel() {
   select.innerHTML = db.users.map(u => `<option value="${u.email}">${u.name} (${u.email})</option>`).join('');
   loadAdminChat();
 
-  // PARA YATIRMA TALEPLERİ
   const depList = document.getElementById('depositRequestsAdmin');
   depList.innerHTML = (!db.deposits || db.deposits.length === 0) ? `<p style="font-size:11px; color:var(--gb-text-sub);">Bekleyen yatırım talebi yok.</p>` :
     db.deposits.map(d => `
@@ -1231,7 +1242,6 @@ function openAdminPanel() {
       </div>
     `).join('');
 
-  // PARA ÇEKME TALEPLERİ
   const reqList = document.getElementById('withdrawRequestsAdmin');
   reqList.innerHTML = (!db.withdrawals || db.withdrawals.length === 0) ? `<p style="font-size:11px; color:var(--gb-text-sub);">Bekleyen çekim talebi yok.</p>` :
     db.withdrawals.map(w => `
@@ -1394,7 +1404,6 @@ function adminUpdateGame(index) {
   openAdminPanel();
 }
 
-// PARA YATIRMA ONAYI TAMAMEN DÜZELTİLDİ
 function adminApproveDeposit(id) {
   db = getDB();
   let index = db.deposits.findIndex(d => d.id === id);
@@ -1405,14 +1414,13 @@ function adminApproveDeposit(id) {
       u.balance += item.amount; 
       logTransaction(u.email, 'Yatırım Onaylandı', item.amount, `Havale (${item.sender})`);
       
-      // Eğer onaylanan kişi o an açık olan hesapsa ekrandaki bakiyeyi anında arttır
       if(currentUser && currentUser.email.toLowerCase().trim() === u.email.toLowerCase().trim()) {
         currentUser.balance = u.balance;
       }
     }
     db.deposits.splice(index, 1);
     saveDB(db);
-    updateUserUI(); // Arayüzü tazeleyerek tutarı anında ekrana yansıt
+    updateUserUI();
     alert(`₺${item.amount} tutarındaki yatırım talebi onaylandı ve bakiyeye yüklendi!`);
     openAdminPanel();
   }
@@ -1506,7 +1514,7 @@ function exportData() {
   let dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db));
   let anchor = document.createElement('a');
   anchor.setAttribute("href", dataStr);
-  anchor.setAttribute("download", `GoalBet_v18_Yedek.json`);
+  anchor.setAttribute("download", `GoalBet_v19_Yedek.json`);
   document.body.appendChild(anchor);
   anchor.click();
   anchor.remove();
