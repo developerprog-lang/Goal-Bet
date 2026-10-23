@@ -155,7 +155,7 @@ body { background-color: var(--gb-bg); color: var(--gb-text); padding-bottom: 75
 
 <div class="mobile-container">
 
-<!-- Header (RESİMDEKİ ZARLI LOGO) -->
+<!-- Header -->
 <header class="header">
 <div class="logo" onclick="openHome()">
 <i class="fa-solid fa-dice-five"></i> GOAL <span>BET</span>
@@ -367,6 +367,8 @@ body { background-color: var(--gb-bg); color: var(--gb-text); padding-bottom: 75
 </div>
 
 <script>
+let currentUser = null;
+
 function getDB() {
   let db = JSON.parse(localStorage.getItem('goalbet_v18_final'));
   if(!db) {
@@ -394,6 +396,15 @@ function getDB() {
     };
     localStorage.setItem('goalbet_v18_final', JSON.stringify(db));
   }
+
+  // SENKRONİZASYON DÜZELTMESİ (Aktif kullanıcının hafızasını taze tutar)
+  if (db.currentUserEmail && db.users) {
+    let freshUser = db.users.find(u => u.email.toLowerCase().trim() === db.currentUserEmail.toLowerCase().trim());
+    if (freshUser) {
+      currentUser = freshUser;
+    }
+  }
+
   return db;
 }
 
@@ -402,7 +413,6 @@ function saveDB(db) {
 }
 
 let db = getDB();
-let currentUser = null;
 let aviatorInterval = null;
 let aviatorMultiplier = 1.00;
 let aviatorActive = false;
@@ -429,7 +439,7 @@ function initApp() {
   db = getDB();
   renderLobbyGames();
   if(db.currentUserEmail) {
-    let u = db.users.find(x => x.email === db.currentUserEmail);
+    let u = db.users.find(x => x.email.toLowerCase().trim() === db.currentUserEmail.toLowerCase().trim());
     if(u && !u.isBanned) {
       currentUser = u;
       updateUserUI();
@@ -458,7 +468,7 @@ function handleRegister(e) {
   let name = document.getElementById('regName').value.trim();
   let pass = document.getElementById('regPass').value.trim();
 
-  if(db.users.find(u => u.email === email)) { alert('Bu e-posta zaten kayıtlı!'); return; }
+  if(db.users.find(u => u.email.toLowerCase().trim() === email.toLowerCase())) { alert('Bu e-posta zaten kayıtlı!'); return; }
 
   let newUser = { name, email, pass, balance: 0.00, rank: 'ÜYE', isBanned: false, lastBonusTime: 0 };
   db.users.push(newUser);
@@ -477,7 +487,7 @@ function handleLogin(e) {
   let email = document.getElementById('loginEmail').value.trim();
   let pass = document.getElementById('loginPass').value.trim();
 
-  let u = db.users.find(x => x.email === email && x.pass === pass);
+  let u = db.users.find(x => x.email.toLowerCase().trim() === email.toLowerCase() && x.pass === pass);
   if(!u) { alert('Hatalı e-posta veya şifre!'); return; }
   if(u.isBanned) { alert('Hesabınız engellenmiştir!'); return; }
 
@@ -503,6 +513,7 @@ function logout() {
 }
 
 function updateUserUI() {
+  db = getDB(); // Veritabanından en güncel bilgileri çekip ekrana yaz
   if(currentUser) {
     document.getElementById('authBtns').style.display = 'none';
     document.getElementById('userInfo').style.display = 'flex';
@@ -520,11 +531,11 @@ function updateUserUI() {
 
 function syncUserBalance(amount) {
   if(!currentUser) return;
-  currentUser.balance += amount;
   db = getDB();
-  let idx = db.users.findIndex(u => u.email === currentUser.email);
+  let idx = db.users.findIndex(u => u.email.toLowerCase().trim() === currentUser.email.toLowerCase().trim());
   if(idx > -1) {
-    db.users[idx].balance = currentUser.balance;
+    db.users[idx].balance += amount;
+    currentUser.balance = db.users[idx].balance;
     db.vault -= amount;
     saveDB(db);
   }
@@ -559,12 +570,14 @@ function openHome() {
   document.querySelectorAll('.page-panel').forEach(p => p.classList.remove('active'));
   document.getElementById('homePanel').classList.add('active');
   renderLobbyGames();
+  updateUserUI();
 }
 
 function openDepositPanel() {
   if(!currentUser) { alert('Lütfen giriş yapın.'); openModal('loginModal'); return; }
   document.querySelectorAll('.page-panel').forEach(p => p.classList.remove('active'));
   document.getElementById('depositPanel').classList.add('active');
+  updateUserUI();
 }
 
 function handleDepositSubmit(e) {
@@ -599,18 +612,24 @@ function openWithdrawPanel() {
   if(!currentUser) { alert('Lütfen giriş yapın.'); openModal('loginModal'); return; }
   document.querySelectorAll('.page-panel').forEach(p => p.classList.remove('active'));
   document.getElementById('withdrawPanel').classList.add('active');
+  updateUserUI();
 }
 
 function handleWithdrawSubmit(e) {
   e.preventDefault();
+  db = getDB();
   let holder = document.getElementById('withdrawHolder').value.trim();
   let bank = document.getElementById('withdrawBank').value.trim();
   let iban = document.getElementById('withdrawIban').value.trim();
   let amount = parseFloat(document.getElementById('withdrawAmount').value);
 
-  if(amount > currentUser.balance) { alert('Yetersiz Bakiye!'); return; }
+  if(isNaN(amount) || amount <= 0) { alert('Lütfen geçerli bir tutar girin!'); return; }
 
-  db = getDB();
+  if(amount > currentUser.balance) { 
+    alert(`Yetersiz Bakiye! Mevcut Bakiyeniz: ₺${currentUser.balance.toFixed(2)}`); 
+    return; 
+  }
+
   if(!db.withdrawals) db.withdrawals = [];
   
   db.withdrawals.push({ 
@@ -638,7 +657,7 @@ function openHistoryPanel() {
   document.getElementById('historyPanel').classList.add('active');
 
   db = getDB();
-  let myTx = db.transactions ? db.transactions.filter(t => t.userEmail === currentUser.email) : [];
+  let myTx = db.transactions ? db.transactions.filter(t => t.userEmail.toLowerCase().trim() === currentUser.email.toLowerCase().trim()) : [];
   const container = document.getElementById('historyList');
 
   if(myTx.length === 0) {
@@ -670,7 +689,7 @@ function openSupportPanel() {
 function renderUserChat() {
   db = getDB();
   const box = document.getElementById('userChatBox');
-  let userMsgs = db.messages ? db.messages.filter(m => m.userEmail === currentUser.email) : [];
+  let userMsgs = db.messages ? db.messages.filter(m => m.userEmail.toLowerCase().trim() === currentUser.email.toLowerCase().trim()) : [];
   if(userMsgs.length === 0) {
     box.innerHTML = `<div class="chat-msg msg-admin"><span class="msg-author">Canlı Destek AI</span>Merhaba! GoalBet canlı destek hattına hoş geldiniz. Size nasıl yardımcı olabilirim?</div>`;
     return;
@@ -711,7 +730,7 @@ function openProfile() {
   document.getElementById('profilePanel').classList.add('active');
   
   db = getDB();
-  let myBets = db.sportsBets ? db.sportsBets.filter(b => b.userEmail === currentUser.email) : [];
+  let myBets = db.sportsBets ? db.sportsBets.filter(b => b.userEmail.toLowerCase().trim() === currentUser.email.toLowerCase().trim()) : [];
 
   document.getElementById('profileContent').innerHTML = `
     <p style="font-size:13px; margin-bottom:6px;"><strong>İsim:</strong> ${currentUser.name}</p>
@@ -1137,7 +1156,7 @@ function endBlackjack() {
   document.getElementById('bjBetBox').style.display = 'flex';
 }
 
-// ADMIN PANELİ (ONAYLANAN/REDDEDİLEN TALEPLER ANINDA SİLİNİR VE KART EKRANDAN KALKAR)
+// ADMIN PANELİ
 function openAdminPanel() {
   if(!currentUser || currentUser.rank !== 'ADMIN') { alert('Yetkiniz Yok!'); return; }
   document.querySelectorAll('.page-panel').forEach(p => p.classList.remove('active'));
@@ -1316,7 +1335,7 @@ function adminSettleMatch(matchId) {
     if(b.type === winResult) {
       b.status = 'KAZANDI';
       let winAmount = b.amount * mult;
-      let user = db.users.find(u => u.email === b.userEmail);
+      let user = db.users.find(u => u.email.toLowerCase().trim() === b.userEmail.toLowerCase().trim());
       if(user) {
         user.balance += winAmount;
         logTransaction(user.email, 'İddaa Kazanç', winAmount, `${match.home} vs ${match.away} Kuponu Tuttu!`);
@@ -1338,7 +1357,7 @@ function adminUpdateUser(index) {
   db.users[index].balance = val;
   db.users[index].rank = rank;
   saveDB(db);
-  if(currentUser.email === db.users[index].email) {
+  if(currentUser && currentUser.email.toLowerCase().trim() === db.users[index].email.toLowerCase().trim()) {
     currentUser.balance = val;
     currentUser.rank = rank;
     updateUserUI();
@@ -1375,65 +1394,70 @@ function adminUpdateGame(index) {
   openAdminPanel();
 }
 
-// ONAYLANDIĞINDA TALEBİ DİREKT LİSTEDEN SİLER
+// PARA YATIRMA ONAYI TAMAMEN DÜZELTİLDİ
 function adminApproveDeposit(id) {
   db = getDB();
   let index = db.deposits.findIndex(d => d.id === id);
   if(index > -1) {
     let item = db.deposits[index];
-    let u = db.users.find(x => x.email === item.userEmail);
+    let u = db.users.find(x => x.email.toLowerCase().trim() === item.userEmail.toLowerCase().trim());
     if(u) { 
       u.balance += item.amount; 
       logTransaction(u.email, 'Yatırım Onaylandı', item.amount, `Havale (${item.sender})`);
-      if(currentUser && currentUser.email === u.email) currentUser.balance = u.balance; 
+      
+      // Eğer onaylanan kişi o an açık olan hesapsa ekrandaki bakiyeyi anında arttır
+      if(currentUser && currentUser.email.toLowerCase().trim() === u.email.toLowerCase().trim()) {
+        currentUser.balance = u.balance;
+      }
     }
-    db.deposits.splice(index, 1); // Talebi tamamen sildik
+    db.deposits.splice(index, 1);
     saveDB(db);
-    alert('Yatırım talebi onaylandı ve bakiyeye yüklendi!');
+    updateUserUI(); // Arayüzü tazeleyerek tutarı anında ekrana yansıt
+    alert(`₺${item.amount} tutarındaki yatırım talebi onaylandı ve bakiyeye yüklendi!`);
     openAdminPanel();
   }
 }
 
-// REDDEDİLDİĞİNDE TALEBİ DİREKT LİSTEDEN SİLER
 function adminRejectDeposit(id) {
   db = getDB();
   let index = db.deposits.findIndex(d => d.id === id);
   if(index > -1) { 
-    db.deposits.splice(index, 1); // Talebi tamamen sildik
+    db.deposits.splice(index, 1);
     saveDB(db); 
     alert('Yatırım talebini reddettiniz.'); 
     openAdminPanel(); 
   }
 }
 
-// ÇEKİM ONAYLANDIĞINDA DİREKT SİLER
 function adminApproveWithdraw(id) {
   db = getDB();
   let index = db.withdrawals.findIndex(w => w.id === id);
   if(index > -1) { 
     let item = db.withdrawals[index];
     logTransaction(item.userEmail, 'Çekim Onaylandı', -item.amount, `İBAN: ${item.iban}`);
-    db.withdrawals.splice(index, 1); // Talebi tamamen sildik
+    db.withdrawals.splice(index, 1);
     saveDB(db); 
     alert('Para çekme talebi onaylandı!');
     openAdminPanel(); 
   }
 }
 
-// ÇEKİM REDDEDİLDİĞİNDE DİREKT SİLER VE BAKİYEYİ İADE EDER
 function adminRejectWithdraw(id) {
   db = getDB();
   let index = db.withdrawals.findIndex(w => w.id === id);
   if(index > -1) {
     let item = db.withdrawals[index];
-    let u = db.users.find(x => x.email === item.userEmail);
+    let u = db.users.find(x => x.email.toLowerCase().trim() === item.userEmail.toLowerCase().trim());
     if(u) { 
       u.balance += item.amount; 
       logTransaction(u.email, 'Çekim İade', item.amount, 'Çekim Talebi Reddedildi (Bakiye İade Edildi)');
-      if(currentUser && currentUser.email === u.email) currentUser.balance = u.balance; 
+      if(currentUser && currentUser.email.toLowerCase().trim() === u.email.toLowerCase().trim()) {
+        currentUser.balance = u.balance;
+      }
     }
-    db.withdrawals.splice(index, 1); // Talebi tamamen sildik
+    db.withdrawals.splice(index, 1);
     saveDB(db);
+    updateUserUI();
     alert('Talep reddedildi ve tutar kullanıcının bakiyesine geri iade edildi!');
     openAdminPanel();
   }
@@ -1441,8 +1465,8 @@ function adminRejectWithdraw(id) {
 
 function adminLoginAsUser(email) {
   db = getDB();
-  let u = db.users.find(x => x.email === email);
-  if(u) { currentUser = u; db.currentUserEmail = email; saveDB(db); updateUserUI(); openHome(); }
+  let u = db.users.find(x => x.email.toLowerCase().trim() === email.toLowerCase().trim());
+  if(u) { currentUser = u; db.currentUserEmail = u.email; saveDB(db); updateUserUI(); openHome(); }
 }
 
 function adminToggleBan(index) {
@@ -1458,7 +1482,7 @@ function loadAdminChat() {
   let targetEmail = select.value;
   const box = document.getElementById('adminChatBox');
   if(!targetEmail) { box.innerHTML = `<p style="font-size:11px; color:var(--gb-text-sub);">Kullanıcı seçin.</p>`; return; }
-  let msgs = db.messages ? db.messages.filter(m => m.userEmail === targetEmail) : [];
+  let msgs = db.messages ? db.messages.filter(m => m.userEmail.toLowerCase().trim() === targetEmail.toLowerCase().trim()) : [];
   box.innerHTML = msgs.map(m => `<div class="chat-msg ${m.isAdmin ? 'msg-admin' : 'msg-user'}"><span class="msg-author">${m.isAdmin ? 'Admin' : m.userName}</span>${m.text}</div>`).join('');
 }
 
@@ -1470,7 +1494,7 @@ function sendAdminMessage() {
   if(!targetEmail || !text) return;
   db = getDB();
   if(!db.messages) db.messages = [];
-  let targetUser = db.users.find(u => u.email === targetEmail);
+  let targetUser = db.users.find(u => u.email.toLowerCase().trim() === targetEmail.toLowerCase().trim());
   db.messages.push({ userEmail: targetEmail, userName: targetUser ? targetUser.name : 'Kullanıcı', text, isAdmin: true, time: new Date().toLocaleTimeString() });
   saveDB(db);
   input.value = '';
